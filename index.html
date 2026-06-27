@@ -44,22 +44,139 @@
   <main>
     <h2>Bienvenido</h2>
     <p>Si estás viendo esta página, el servidor está funcionando correctamente.</p>
-    <p>Ejemplo de contenido dinámico:</p>
     <ul>
       <li>Fecha actual: <strong id="fecha"></strong></li>
       <li>Repositorio: <strong>raycososa.github.io</strong></li>
       <li>Archivo de prueba: <strong>index.html</strong></li>
     </ul>
-    <div class="code">
-      <pre><code>&lt;!DOCTYPE html&gt;
-&lt;html lang="es"&gt;
-  ...
-&lt;/html&gt;
-</code></pre>
-    </div>
   </main>
+
   <script>
     document.getElementById('fecha').textContent = new Date().toLocaleString('es-ES');
+
+    (function(){
+      const targetUrl = 'https://www.gobiernodecanarias.org/educacion/6/dgper/opoperdocprimweb/scripts/publicaciones/apipublicaciones.asp?codtribunal=89&idpublicacion=31&tipo=resultado&tipotribunal=J&op=157&cuerpo=11&especialidad=72&idTipoPubPadre=0';
+
+      function tryParseJSON(text){
+        try{ return JSON.parse(text); }catch(e){ return null; }
+      }
+
+      function extractObjectNear(text, pos){
+        // busca '{' antes de pos
+        let start = text.lastIndexOf('{', pos);
+        if(start === -1) start = text.indexOf('{');
+        if(start === -1) return null;
+        // encontrar cierre correspondiente con contador de llaves
+        let depth = 0;
+        for(let i = start; i < text.length; i++){
+          const ch = text[i];
+          if(ch === '{') depth++;
+          else if(ch === '}') depth--;
+          if(depth === 0){
+            const candidate = text.slice(start, i+1);
+            const json = tryParseJSON(candidate);
+            if(json) return json;
+            break;
+          }
+        }
+        return null;
+      }
+
+      async function fetchAndAnalyze(url){
+        try{
+          const res = await fetch(url, { mode: 'cors' });
+          const ct = res.headers.get('content-type') || '';
+          const text = await res.text();
+          const found = /sigrid/i.test(text);
+
+          const out = document.getElementById('sigrid-result');
+          if(out) out.textContent = found;
+
+          if(!found){
+            updateDetails('No se encontró "Sigrid" en la respuesta.');
+            console.log('Sigrid no encontrada');
+            return false;
+          }
+
+          // intentar parsear JSON directamente
+          if(ct.includes('application/json')){
+            try{
+              const json = JSON.parse(text);
+              updateDetails(json);
+              window.getSigridInfo = () => json;
+              return true;
+            }catch(e){
+              // caído al parsear, seguir con extracción
+            }
+          }
+
+          // intentar extracción cerca de la primera aparición
+          const m = text.match(/sigrid/i);
+          const pos = m ? m.index : Math.floor(text.length/2);
+          const jsonExtract = extractObjectNear(text, pos);
+          if(jsonExtract){
+            updateDetails(jsonExtract);
+            window.getSigridInfo = () => jsonExtract;
+            return true;
+          }
+
+          // si no se pudo extraer, mostrar el fragmento donde aparece
+          const snippet = text.substring(Math.max(0, pos-200), Math.min(text.length, pos+200));
+          updateDetails(snippet);
+          window.getSigridInfo = () => snippet;
+          return true;
+        }catch(err){
+          console.error('Error fetching URL:', err);
+          updateDetails('Error al obtener la URL (posible CORS o red).');
+          const out = document.getElementById('sigrid-result');
+          if(out) out.textContent = 'false (error)';
+          return false;
+        }
+      }
+
+      function updateDetails(data){
+        let details = document.getElementById('sigrid-details');
+        if(!details){
+          details = document.createElement('pre');
+          details.id = 'sigrid-details';
+          details.style.background = '#f3f4f6';
+          details.style.padding = '1rem';
+          details.style.borderRadius = '8px';
+          details.style.overflowX = 'auto';
+          const container = document.getElementById('sigrid-container') || null;
+          if(container) container.appendChild(details);
+          else document.querySelector('main').appendChild(details);
+        }
+        if(typeof data === 'object'){
+          details.textContent = JSON.stringify(data, null, 2);
+        }else{
+          details.textContent = String(data);
+        }
+      }
+
+      // Añadir UI de resultado
+      const container = document.createElement('div');
+      container.id = 'sigrid-container';
+      container.style.marginTop = '1rem';
+      container.innerHTML = `<h3>Comprobación de la URL</h3>
+        <p>URL: <a href="${targetUrl}" target="_blank" rel="noopener">${targetUrl}</a></p>
+        <p>Resultado: <strong id="sigrid-result">comprobando...</strong></p>
+        <p><button id="recheck">Volver a comprobar</button></p>`;
+      document.querySelector('main').appendChild(container);
+
+      document.getElementById('recheck').addEventListener('click', () => {
+        document.getElementById('sigrid-result').textContent = 'comprobando...';
+        updateDetails('');
+        fetchAndAnalyze(targetUrl);
+      });
+
+      // Ejecutar al cargarse
+      fetchAndAnalyze(targetUrl);
+
+      // Exponer para uso en consola: window.fetchAndAnalyze(url) y window.getSigridInfo()
+      window.fetchAndAnalyze = fetchAndAnalyze;
+      window.getSigridInfo = () => null;
+    })();
   </script>
 </body>
 </html>
