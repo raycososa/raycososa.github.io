@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Página de prueba</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+      color: #1f2937;
+    }
+    header {
+      background: #2563eb;
+      color: white;
+      padding: 2rem 1rem;
+      text-align: center;
+    }
+    main {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .code {
+      background: #111827;
+      color: #f8fafc;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Prueba de servidor GitHub Pages</h1>
+    <p>Esta es una página de prueba generada para ver tu sitio en el servidor.</p>
+  </header>
+  <main>
+    <h2>Bienvenido</h2>
+    <p>Si estás viendo esta página, el servidor está funcionando correctamente.</p>
+    <p>Ejemplo de contenido dinámico:</p>
+    <ul>
+      <li>Fecha actual: <strong id="fecha"></strong></li>
+      <li>Repositorio: <strong>raycososa.github.io</strong></li>
+      <li>Archivo de prueba: <strong>index.html</strong></li>
+    </ul>
+    <div class="code">
+      <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="es"&gt;
+  ...
+&lt;/html&gt;
+</code></pre>
+    </div>
+  </main>
+  <script>
+    document.getElementById('fecha').textContent = new Date().toLocaleString('es-ES');
+  </script>
+</body>
+</html>
