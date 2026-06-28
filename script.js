@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fecha').textContent = new Date().toLocaleString('es-ES');
 
-  const searchText = 'PEREZ DE LA NUEZ';
+  const searchText = 'Sigrid';
   const targetUrl = 'https://www.gobiernodecanarias.org/educacion/6/dgper/opoperdocprimweb/scripts/publicaciones/apipublicaciones.asp?codtribunal=89&idpublicacion=31&tipo=resultado&tipotribunal=J&op=157&cuerpo=11&especialidad=72&idTipoPubPadre=0';
 
   function tryParseJSON(text) {
@@ -32,21 +32,31 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
-  function findObjectContainingText(data, searchText) {
+  function findObjectContainingText(data) {
+    const regex = new RegExp(searchText, 'i');
+
     if (data && typeof data === 'object') {
       if (Array.isArray(data)) {
         for (const item of data) {
-          const found = findObjectContainingText(item, searchText);
+          const found = findObjectContainingText(item);
           if (found) return found;
         }
         return null;
       }
 
-      const stringValue = JSON.stringify(data);
-      if (new RegExp(searchText, 'i').test(stringValue)) {
-        return data;
+      for (const key in data) {
+        if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+
+        const value = data[key];
+        if (value && typeof value === 'object') {
+          const found = findObjectContainingText(value);
+          if (found) return found;
+        } else if (regex.test(String(value)) || regex.test(key)) {
+          return data;
+        }
       }
     }
+
     return null;
   }
 
@@ -111,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ct.includes('application/json')) {
         try {
           const json = JSON.parse(text);
-          matchedObject = findObjectContainingText(json, searchText) || null;
+          matchedObject = findObjectContainingText(json) || null;
         } catch (e) {
           // seguir con extracción de fragmento JSON
         }
